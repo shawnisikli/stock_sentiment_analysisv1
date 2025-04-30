@@ -13,18 +13,9 @@ module_path = os.path.abspath(os.path.join('.'))
 if (module_path not in sys.path):
     sys.path.append(module_path)
 
-# Import functions from your src directory
-try:
-    from src.data_fetcher import get_stock_data, get_news_articles, load_api_keys
-    from src.sentiment_analyzer import analyze_sentiment
-except ImportError as e:
-    # Handle error gracefully if run from a different directory or modules missing
-    print(f"Error importing modules from src: {e}. Ensure app.py is in the project root and src/* exists.")
-    # Define dummy functions if imports fail, so Gradio interface can still load
-    def get_stock_data(*args, **kwargs): return None
-    def get_news_articles(*args, **kwargs): return None
-    def analyze_sentiment(*args, **kwargs): return None, None, None
-    def load_api_keys(): return None, None
+# Import functions directly (removed try/except block)
+from src.data_fetcher import get_stock_data, get_news_articles, load_api_keys
+from src.sentiment_analyzer import analyze_sentiment
 
 
 # --- Data Fetching and Processing Logic ---
