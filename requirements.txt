@@ -1,0 +1,10 @@
+pandas
+yfinance
+newsapi-python
+jupyter
+torch
+transformers
+scikit-learn
+matplotlib
+nltk
+python-dotenv
