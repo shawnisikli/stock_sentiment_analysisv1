@@ -28,24 +28,28 @@ except ImportError as e:
 
 
 # --- Data Fetching and Processing Logic ---
-# (Similar to the Streamlit version, but adapted for Gradio outputs)
-# Added a comment below to trigger rebuild
-def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed date inputs
+def perform_analysis(ticker_symbol, start_date_str, end_date_str):
     """Fetches data, analyzes sentiment, merges, and prepares outputs for Gradio."""
     if not ticker_symbol:
-        return None, "Please enter a stock ticker.", None, None, None
+        # Return values match the simplified output count
+        return None, "Please enter a stock ticker.", None, "Input Error." # Plot, Insights, News, Status
 
     # Ensure API keys are loaded (needed for news)
     news_key, _ = load_api_keys()
     if not news_key:
-         return None, "Error: NEWS_API_KEY not found in .env file. Cannot fetch news.", None, None, None
+         # Return values match the simplified output count
+         return None, "Error: NEWS_API_KEY not found in environment variables. Cannot fetch news.", None, "API Key Error." # Plot, Insights, News, Status
 
-    # Convert Gradio date objects to strings
-    start_date_str = start_date.strftime('%Y-%m-%d')
-    end_date_str = end_date.strftime('%Y-%m-%d')
-
-    if start_date >= end_date:
-        return None, "Error: Start date must be before end date.", None, None, None
+    # Parse and validate dates inside perform_analysis
+    try:
+        start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        if start_date_obj >= end_date_obj:
+            # Return values match the simplified output count
+            return None, "Error: Start date must be before end date.", None, "Date Error." # Plot, Insights, News, Status
+    except ValueError:
+        # Return values match the simplified output count
+        return None, "Error: Invalid date format. Please use YYYY-MM-DD.", None, "Date Format Error." # Plot, Insights, News, Status
 
     status_updates = f"Fetching data for {ticker_symbol} from {start_date_str} to {end_date_str}...\n"
 
@@ -53,12 +57,11 @@ def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed dat
     stock_df = get_stock_data(ticker_symbol, start_date_str, end_date_str)
     if stock_df is None or stock_df.empty:
         status_updates += "Could not fetch stock data.\n"
-        # Return early if essential data is missing
-        return None, status_updates, None, None, None
+        # Return early if essential data is missing (match simplified output count)
+        return None, status_updates, None, status_updates # Plot, Insights, News, Status
     else:
         status_updates += f"Successfully fetched {len(stock_df)} days of stock data.\n"
         stock_df['Date'] = pd.to_datetime(stock_df['Date'])
-
 
     # 2. Fetch News Articles
     articles_list = get_news_articles(ticker_symbol, start_date_str, end_date_str)
@@ -198,7 +201,8 @@ def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed dat
              status_updates += "Prepared recent news table.\n"
 
 
-    return plot_object, insights_text, recent_news_df, status_updates, merged_df # Return merged_df for potential download
+    # Final return includes merged_df for internal use, but wrapper selects outputs
+    return plot_object, insights_text, recent_news_df, status_updates, merged_df # Keep returning merged_df internally
 
 
 # --- Gradio Interface Definition ---
@@ -208,48 +212,43 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             ticker_input = gr.Textbox(label="Stock Ticker", value="AAPL", placeholder="e.g., AAPL, GOOGL")
-            # Use Textbox for dates, value should be string
             start_date_input = gr.Textbox(label="Start Date (YYYY-MM-DD)", value=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
             end_date_input = gr.Textbox(label="End Date (YYYY-MM-DD)", value=datetime.now().strftime('%Y-%m-%d'))
             analyze_button = gr.Button("Analyze", variant="primary")
             status_output = gr.Textbox(label="Analysis Status", lines=5, interactive=False)
-            # Optional: Add download button for the merged data
-            download_data = gr.File(label="Download Merged Data (CSV)")
+            # Optional: Add download button for the merged data - COMMENTED OUT
+            # download_data = gr.File(label="Download Merged Data (CSV)")
 
         with gr.Column(scale=3):
             plot_output = gr.Plot(label="Stock Price vs. Sentiment")
             insights_output = gr.Markdown(label="Analysis & Insights")
             news_output = gr.DataFrame(label="Recent News Headlines", headers=['Date', 'Title', 'Sentiment', 'Score'], wrap=True)
 
-    # Hidden state to store the merged dataframe for download
-    merged_df_state = gr.State(None)
+    # Hidden state to store the merged dataframe for download - COMMENTED OUT
+    # merged_df_state = gr.State(None)
 
     # Modify the wrapper function to accept strings and parse them
     def run_analysis_and_prepare_download(ticker, start_date_str, end_date_str):
-        """Wrapper function to run analysis and prepare CSV for download."""
-        try:
-            # Validate and parse date strings here before passing to perform_analysis
-            start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-             # Handle invalid date format input from textbox
-             return None, "Error: Invalid date format. Please use YYYY-MM-DD.", None, "Error processing dates.", None, None
+        """Wrapper function to run analysis."""
+        # Call perform_analysis which now handles date validation
+        # It returns 5 values: plot, insights, news, status, merged_df
+        results = perform_analysis(ticker, start_date_str, end_date_str)
 
-        # Pass the original strings to perform_analysis, as it expects strings now
-        plot, insights, news, status, merged_df = perform_analysis(ticker, start_date_str, end_date_str)
+        # Check if perform_analysis returned an error tuple (4 elements)
+        if len(results) == 4:
+             return results[0], results[1], results[2], results[3] # plot, insights, news, status
 
-        csv_path = None
-        if merged_df is not None and not merged_df.empty:
-            # Save to a temporary CSV file for Gradio download
-            csv_path = "temp_merged_data.csv"
-            merged_df.to_csv(csv_path, index=False)
+        # Otherwise, unpack the full 5 results
+        plot, insights, news, status, _ = results # Ignore merged_df for output
 
-        return plot, insights, news, status, merged_df, csv_path # Return path for download
+        # Return only the outputs for the active components
+        return plot, insights, news, status # Removed merged_df and csv_path
 
     analyze_button.click(
         fn=run_analysis_and_prepare_download,
         inputs=[ticker_input, start_date_input, end_date_input], # Inputs are now textboxes
-        outputs=[plot_output, insights_output, news_output, status_output, merged_df_state, download_data] # Update state and file output
+        # Update outputs list to match the modified return values
+        outputs=[plot_output, insights_output, news_output, status_output] # Removed merged_df_state and download_data
     )
 
 # --- Launch the App ---
