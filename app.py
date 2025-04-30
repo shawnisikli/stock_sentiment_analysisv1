@@ -29,7 +29,8 @@ except ImportError as e:
 
 # --- Data Fetching and Processing Logic ---
 # (Similar to the Streamlit version, but adapted for Gradio outputs)
-def perform_analysis(ticker_symbol, start_date, end_date):
+# Added a comment below to trigger rebuild
+def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed date inputs
     """Fetches data, analyzes sentiment, merges, and prepares outputs for Gradio."""
     if not ticker_symbol:
         return None, "Please enter a stock ticker.", None, None, None
@@ -244,4 +245,4 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 # --- Launch the App ---
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch() # App entry point
