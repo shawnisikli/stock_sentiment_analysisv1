@@ -19,3 +19,6 @@ data/processed/*
 venv/
 env/
 .venv/
+
+# Temporary files
+temp_merged_data.csv
