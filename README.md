@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: green
 sdk: gradio
 sdk_version: 4.29.0 # Or check your installed version with pip show gradio
-python_version: 3.10 # Corrected version
+python_version: '3.10' # Corrected version
 app_file: app.py
 license: apache-2.0 # Or choose another license if preferred
 ---

@@ -208,13 +208,13 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             ticker_input = gr.Textbox(label="Stock Ticker", value="AAPL", placeholder="e.g., AAPL, GOOGL")
-            start_date_input = gr.Date(label="Start Date", value=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-            end_date_input = gr.Date(label="End Date", value=datetime.now().strftime('%Y-%m-%d'))
+            # Use Textbox for dates, value should be string
+            start_date_input = gr.Textbox(label="Start Date (YYYY-MM-DD)", value=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+            end_date_input = gr.Textbox(label="End Date (YYYY-MM-DD)", value=datetime.now().strftime('%Y-%m-%d'))
             analyze_button = gr.Button("Analyze", variant="primary")
             status_output = gr.Textbox(label="Analysis Status", lines=5, interactive=False)
             # Optional: Add download button for the merged data
             download_data = gr.File(label="Download Merged Data (CSV)")
-
 
         with gr.Column(scale=3):
             plot_output = gr.Plot(label="Stock Price vs. Sentiment")
@@ -224,9 +224,19 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     # Hidden state to store the merged dataframe for download
     merged_df_state = gr.State(None)
 
-    def run_analysis_and_prepare_download(ticker, start_date, end_date):
+    # Modify the wrapper function to accept strings and parse them
+    def run_analysis_and_prepare_download(ticker, start_date_str, end_date_str):
         """Wrapper function to run analysis and prepare CSV for download."""
-        plot, insights, news, status, merged_df = perform_analysis(ticker, start_date, end_date)
+        try:
+            # Validate and parse date strings here before passing to perform_analysis
+            start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+             # Handle invalid date format input from textbox
+             return None, "Error: Invalid date format. Please use YYYY-MM-DD.", None, "Error processing dates.", None, None
+
+        # Pass the original strings to perform_analysis, as it expects strings now
+        plot, insights, news, status, merged_df = perform_analysis(ticker, start_date_str, end_date_str)
 
         csv_path = None
         if merged_df is not None and not merged_df.empty:
@@ -236,10 +246,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         return plot, insights, news, status, merged_df, csv_path # Return path for download
 
-
     analyze_button.click(
         fn=run_analysis_and_prepare_download,
-        inputs=[ticker_input, start_date_input, end_date_input],
+        inputs=[ticker_input, start_date_input, end_date_input], # Inputs are now textboxes
         outputs=[plot_output, insights_output, news_output, status_output, merged_df_state, download_data] # Update state and file output
     )
 
