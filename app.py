@@ -10,7 +10,7 @@ import base64
 
 # Add src directory to path to import modules
 module_path = os.path.abspath(os.path.join('.'))
-if module_path not in sys.path:
+if (module_path not in sys.path):
     sys.path.append(module_path)
 
 # Import functions from your src directory
@@ -29,7 +29,7 @@ except ImportError as e:
 
 # --- Data Fetching and Processing Logic ---
 # (Similar to the Streamlit version, but adapted for Gradio outputs)
-def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed date inputs
+def perform_analysis(ticker_symbol, start_date, end_date):
     """Fetches data, analyzes sentiment, merges, and prepares outputs for Gradio."""
     if not ticker_symbol:
         return None, "Please enter a stock ticker.", None, None, None
@@ -39,15 +39,11 @@ def perform_analysis(ticker_symbol, start_date_str, end_date_str): # Renamed dat
     if not news_key:
          return None, "Error: NEWS_API_KEY not found in .env file. Cannot fetch news.", None, None, None
 
-    # Validate and parse date strings
-    try:
-        start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return None, "Error: Invalid date format. Please use YYYY-MM-DD.", None, None, None
+    # Convert Gradio date objects to strings
+    start_date_str = start_date.strftime('%Y-%m-%d')
+    end_date_str = end_date.strftime('%Y-%m-%d')
 
-
-    if start_date_obj >= end_date_obj:
+    if start_date >= end_date:
         return None, "Error: Start date must be before end date.", None, None, None
 
     status_updates = f"Fetching data for {ticker_symbol} from {start_date_str} to {end_date_str}...\n"
@@ -211,9 +207,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             ticker_input = gr.Textbox(label="Stock Ticker", value="AAPL", placeholder="e.g., AAPL, GOOGL")
-            # Use Textbox for dates, value should be string
-            start_date_input = gr.Textbox(label="Start Date (YYYY-MM-DD)", value=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-            end_date_input = gr.Textbox(label="End Date (YYYY-MM-DD)", value=datetime.now().strftime('%Y-%m-%d'))
+            start_date_input = gr.Date(label="Start Date", value=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+            end_date_input = gr.Date(label="End Date", value=datetime.now().strftime('%Y-%m-%d'))
             analyze_button = gr.Button("Analyze", variant="primary")
             status_output = gr.Textbox(label="Analysis Status", lines=5, interactive=False)
             # Optional: Add download button for the merged data
@@ -228,17 +223,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     # Hidden state to store the merged dataframe for download
     merged_df_state = gr.State(None)
 
-    def run_analysis_and_prepare_download(ticker, start_date_str, end_date_str): # Use string names
+    def run_analysis_and_prepare_download(ticker, start_date, end_date):
         """Wrapper function to run analysis and prepare CSV for download."""
-        # Parse dates inside the wrapper or ensure perform_analysis handles strings robustly
-        try:
-            start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-             # Handle invalid date format input from textbox
-             return None, "Error: Invalid date format. Please use YYYY-MM-DD.", None, "Error processing dates.", None, None
-
-        plot, insights, news, status, merged_df = perform_analysis(ticker, start_date_str, end_date_str) # Pass strings
+        plot, insights, news, status, merged_df = perform_analysis(ticker, start_date, end_date)
 
         csv_path = None
         if merged_df is not None and not merged_df.empty:
@@ -251,7 +238,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
     analyze_button.click(
         fn=run_analysis_and_prepare_download,
-        inputs=[ticker_input, start_date_input, end_date_input], # Inputs are now textboxes
+        inputs=[ticker_input, start_date_input, end_date_input],
         outputs=[plot_output, insights_output, news_output, status_output, merged_df_state, download_data] # Update state and file output
     )
 

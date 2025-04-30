@@ -2,17 +2,14 @@ import yfinance as yf
 import pandas as pd
 from newsapi import NewsApiClient
 import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 def load_api_keys():
-    """Loads API keys from the .env file."""
-    load_dotenv()
+    """Loads API keys directly from environment variables."""
     news_api_key = os.getenv("NEWS_API_KEY")
-    alpha_vantage_key = os.getenv("ALPHA_VANTAGE_KEY") # Add ALPHA_VANTAGE_KEY=YOUR_KEY to .env if using
+    alpha_vantage_key = os.getenv("ALPHA_VANTAGE_KEY")
     if not news_api_key:
-        print("Warning: NEWS_API_KEY not found in .env file.")
-    # Add similar check for alpha_vantage_key if you plan to use it
+        print("Warning: NEWS_API_KEY environment variable not found.")
     return news_api_key, alpha_vantage_key
 
 def get_stock_data(ticker, start_date, end_date):
@@ -60,7 +57,7 @@ def get_news_articles(query, from_date, to_date, language='en', sort_by='relevan
     print(f"Date range: {from_date} to {to_date}") # Added print
     news_api_key, _ = load_api_keys()
     if not news_api_key:
-        print("Error: NewsAPI key not available. Cannot fetch news.") # Made error clearer
+        print("Error: NewsAPI key not available in environment variables. Cannot fetch news.")
         return None
 
     try:
